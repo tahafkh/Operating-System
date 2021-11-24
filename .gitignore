@@ -1,4 +1,5 @@
 # idea stuffs
 .idea/
+*.vscode/
 *.o
 *.out
