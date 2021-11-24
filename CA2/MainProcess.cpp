@@ -99,7 +99,7 @@ int main(int argc, char const *argv[])
     auto files = find_all_csv_files();
     create_all_map_processes(files);
     auto fd = create_reduce_process(files);
-    while(wait(NULL) > 0);
+    wait(NULL);
     write_results(fd);
     return 0;
 }
