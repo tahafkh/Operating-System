@@ -32,13 +32,13 @@ map<string, int> combine_all_results(int ids){
 void write_final_results(map<string, int> final, int fd){
     auto _token = tokenize(final);
     auto token = _token.c_str();
-    write(fd, token, sizeof(token));
+    write(fd, token, MAX);
     close(fd);
 }
 
 int main(int argc, char const *argv[]){
-    cout << "na" << endl;
     int write_fd = atoi(argv[1]), ids = atoi(argv[2]);
     auto final = combine_all_results(ids);
-
+    write_final_results(final, write_fd);
+    return 0;
 }

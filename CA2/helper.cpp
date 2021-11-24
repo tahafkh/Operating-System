@@ -5,7 +5,7 @@
 using namespace std;
 
 map<string, int> update_map(map<string, int> in_map, string sample, int number){
-    if (in_map.find(sample) != in_map.end()){
+    if (in_map.find(sample) == in_map.end()){
         in_map[sample] = number;
     }
 
@@ -40,7 +40,6 @@ map<string, int> decode_tokens(string tokens){
 string tokenize(map<string, int> in_map){
     string final = "";
     for(auto & _pair: in_map){
-        cout << _pair.first + ":" + to_string(_pair.second) << endl;
         final += _pair.first + ":" + to_string(_pair.second);
         final.push_back(DELIMITER);
     }

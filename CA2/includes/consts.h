@@ -14,6 +14,6 @@
 #define FIFO "fifo_"
 
 #define MAP "./map.out"
-#define REDUCE "/reduce.out"
+#define REDUCE "./reduce.out"
 
 #endif

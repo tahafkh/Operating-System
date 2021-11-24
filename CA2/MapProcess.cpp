@@ -19,10 +19,7 @@ map<string, int> decode_line(map<string, int> decoded, string line){
     return decoded;
 }
 
-map<string, int> decode_csv(int fd){
-    char name[MAX];
-    read(fd, name, sizeof(name));
-    close(fd);
+map<string, int> decode_csv(const char name[]){
     string _name = name, line;
     ifstream file(_name);
     map<string, int> results;
@@ -34,19 +31,20 @@ map<string, int> decode_csv(int fd){
 
 void write_results(map<string, int> result, string fifo_name){
     auto name = fifo_name.c_str();
-    mkfifo(name, 0777);
+    if(mkfifo(name, 0666) == -1 && errno != EEXIST){
+        cerr << "Couldn't create fifo!" << endl;
+        return;
+    }
     auto _token = tokenize(result);
     auto token = _token.c_str();
-    int fd = open(name, O_WRONLY);
-    write(fd, token, sizeof(token));
+    int fd = open(fifo_name.c_str(), O_WRONLY);
+    write(fd, token, MAX);
     close(fd);
 }
 
 int main(int argc, char const *argv[]){
-    cout << "salam" << endl;
-    int read_fd = atoi(argv[1]);
-    auto result = decode_csv(read_fd);
-    string fifo_name = string(FIFO) + string(argv[2]);
+    auto result = decode_csv(argv[1]);
+    string fifo_name = FIFO + string(argv[2]);
     write_results(result, fifo_name);
     return 0;
 }

@@ -31,21 +31,25 @@ void create_unnamed_pipe(int fd[]){
 }
 
 void create_new_map_process(int fd[], string file, int id){
+    auto name = file.c_str();
+    
     pid_t pid = fork();
-
     if (pid == 0){ // child process
         close(fd[WRITE]);
-        string read_fd = to_string(fd[READ]), proc_id = to_string(id);
-        char temp1[MAX], temp2[MAX];
-        strcpy(temp1, read_fd.c_str());
-        strcpy(temp2, proc_id.c_str());
-        char* argv[] = {MAP, temp1, temp2, NULL};
+        char name[MAX];
+        read(fd[READ], name, sizeof(name));
+        close(fd[READ]);
+        string proc_id = to_string(id);
+        char temp[MAX];
+        strcpy(temp, proc_id.c_str());
+        char* argv[] = {MAP, name, temp, NULL};
         execv(argv[0], argv);
     }
 
     else{ // parent process
         close(fd[READ]);
         auto name = file.c_str();
+        write(fd[WRITE], name, file.size() + 1);
         close(fd[WRITE]);
     }
 }
@@ -69,7 +73,7 @@ int create_reduce_process(const vector<string>& files){
         char temp1[MAX], temp2[MAX];
         strcpy(temp1, write_fd.c_str());
         strcpy(temp2, ids.c_str());
-        char* argv[] = {REDUCE, temp1, temp2};
+        char* argv[] = {REDUCE, temp1, temp2, NULL};
         execv(argv[0], argv);
     }
 
@@ -95,7 +99,7 @@ int main(int argc, char const *argv[])
     auto files = find_all_csv_files();
     create_all_map_processes(files);
     auto fd = create_reduce_process(files);
-    wait(NULL);
+    while(wait(NULL) > 0);
     write_results(fd);
     return 0;
 }
