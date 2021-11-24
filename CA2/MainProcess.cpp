@@ -1,13 +1,12 @@
-#include "include/consts.h"
-#include "include/helper.h"
+#include "includes/consts.h"
+#include "includes/helper.h"
 #include <fstream>
 #include <iostream>
 #include <experimental/filesystem>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-
+#include <string.h>
+#include <sys/wait.h>
 
 using namespace std;
 
@@ -31,32 +30,32 @@ void create_unnamed_pipe(int fd[]){
     }
 }
 
-void create_all_map_processes(const vector<string>& files){
-    for (int i = 0; i < files.size(); i++){
-        int fd[2];
-        create_unnamed_pipe(fd);
-        create_new_map_process(fd, files[i], i);
-    }
-}
-
-
 void create_new_map_process(int fd[], string file, int id){
     pid_t pid = fork();
 
     if (pid == 0){ // child process
         close(fd[WRITE]);
         string read_fd = to_string(fd[READ]), proc_id = to_string(id);
-        const char* argv[] = {MAP, read_fd.c_str(), proc_id.c_str()};
+        char temp1[MAX], temp2[MAX];
+        strcpy(temp1, read_fd.c_str());
+        strcpy(temp2, proc_id.c_str());
+        char* argv[] = {MAP, temp1, temp2, NULL};
         execv(argv[0], argv);
     }
 
     else{ // parent process
         close(fd[READ]);
         auto name = file.c_str();
-        write(fd[WRITE], name, sizeof(name));
         close(fd[WRITE]);
     }
+}
 
+void create_all_map_processes(const vector<string>& files){
+    for (int i = 0; i < files.size(); i++){
+        int fd[2];
+        create_unnamed_pipe(fd);
+        create_new_map_process(fd, files[i], i);
+    }
 }
 
 int create_reduce_process(const vector<string>& files){
@@ -67,7 +66,10 @@ int create_reduce_process(const vector<string>& files){
     if (pid == 0){ // child process
         close(fd[READ]);
         string write_fd = to_string(fd[WRITE]), ids = to_string(files.size());
-        const char* argv[] = {REDUCE, write_fd.c_str(), ids.c_str()};
+        char temp1[MAX], temp2[MAX];
+        strcpy(temp1, write_fd.c_str());
+        strcpy(temp2, ids.c_str());
+        char* argv[] = {REDUCE, temp1, temp2};
         execv(argv[0], argv);
     }
 
@@ -78,19 +80,14 @@ int create_reduce_process(const vector<string>& files){
     return fd[READ];
 }
 
-vector<string> make_csv(const map<string, int>& final){
-    string line_1 = "", line_2 = "";
-
-}
 
 void write_results(int fd){
     char result[MAX];
     read(fd, result, sizeof(result));
+    close(fd);
     auto final = decode_tokens(string(result));
-    ostream file(string(OUTPUT) + string(EXTENSION));
-    for(auto line : lines){
-        file << line;
-    }
+    ofstream file(string(OUTPUT) + string(EXTENSION));
+    file << tokenize(final);
 }
 
 int main(int argc, char const *argv[])
@@ -98,7 +95,7 @@ int main(int argc, char const *argv[])
     auto files = find_all_csv_files();
     create_all_map_processes(files);
     auto fd = create_reduce_process(files);
-    wait();
+    wait(NULL);
     write_results(fd);
     return 0;
 }

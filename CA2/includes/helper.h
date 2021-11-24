@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <sstream>
 
 std::map<std::string, int> update_map(std::map<std::string, int> in_map, std::string sample, int number);
 std::map<std::string, int> decode_tokens(std::string tokens);

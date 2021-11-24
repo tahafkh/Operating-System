@@ -1,6 +1,6 @@
-#include "include/helper.h"
-#include "include/consts.h"
-#include <sstream>
+#include "includes/helper.h"
+#include "includes/consts.h"
+#include <iostream>
 
 using namespace std;
 
@@ -32,7 +32,7 @@ map<string, int> decode_tokens(string tokens){
     map<string, int> final;
     while (getline(parser, token, DELIMITER)){
         auto decoded = decode_token(token);
-        final = update_map(final, decoded[0], stoi(decoded[1]))
+        final = update_map(final, decoded[0], stoi(decoded[1]));
     }
     return final;
 }
@@ -40,6 +40,7 @@ map<string, int> decode_tokens(string tokens){
 string tokenize(map<string, int> in_map){
     string final = "";
     for(auto & _pair: in_map){
+        cout << _pair.first + ":" + to_string(_pair.second) << endl;
         final += _pair.first + ":" + to_string(_pair.second);
         final.push_back(DELIMITER);
     }

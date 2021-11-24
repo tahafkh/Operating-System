@@ -1,7 +1,9 @@
-#include "include/consts.h"
-#include "include/helper.h"
+#include "includes/consts.h"
+#include "includes/helper.h"
 #include <stdio.h>
 #include <fcntl.h>
+#include <fstream>
+#include <iostream>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -20,6 +22,7 @@ map<string, int> decode_line(map<string, int> decoded, string line){
 map<string, int> decode_csv(int fd){
     char name[MAX];
     read(fd, name, sizeof(name));
+    close(fd);
     string _name = name, line;
     ifstream file(_name);
     map<string, int> results;
@@ -40,9 +43,10 @@ void write_results(map<string, int> result, string fifo_name){
 }
 
 int main(int argc, char const *argv[]){
-    int read_fd = atoi(read_fd);
+    cout << "salam" << endl;
+    int read_fd = atoi(argv[1]);
     auto result = decode_csv(read_fd);
     string fifo_name = string(FIFO) + string(argv[2]);
     write_results(result, fifo_name);
-    exit();
+    return 0;
 }
