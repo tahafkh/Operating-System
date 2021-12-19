@@ -50,7 +50,9 @@ const int RED = 0;
 const int GREEN = 1;
 const int BLUE = 2;
 
+
 const int THREAD_PER_DIM = 2;
+
 
 bool fillAndAllocate(char *&buffer, const char *fileName, int &rows, int &cols, int &bufferSize);
 void getPixlesFromBMP24(int end, int starting_row, int ending_row, int starting_col, int ending_col, char *fileReadBuffer);
@@ -59,5 +61,7 @@ void writeOutBmp24(char *fileBuffer, const char *nameOfFileToCreate, int bufferS
 void allocate_photo(unsigned char***& photo);
 void get_pixels_handler(int end, char *fileReadBuffer);
 
+
+void filters_handler();
 
 #endif

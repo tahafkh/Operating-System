@@ -17,7 +17,8 @@ using std::ofstream;
 int main(int argc, char *argv[])
 {
   char *file_name = argv[1];
-
+  const char* OUTPUT_PHOTO_NAME = "output.bmp";
+  
   if (!fillAndAllocate(file_buffer, file_name, rows, cols, buffer_size))
   {
     cout << "Error reading file" << endl;
@@ -27,6 +28,10 @@ int main(int argc, char *argv[])
   allocate_photo(photo_1);
   allocate_photo(photo_2);
 
+  get_pixels_handler(buffer_size, file_buffer);
 
+  filters_handler();
+
+  writeOutBmp24(file_buffer, OUTPUT_PHOTO_NAME, buffer_size);
   return 0;
 }
