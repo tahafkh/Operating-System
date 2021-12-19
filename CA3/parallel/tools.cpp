@@ -6,6 +6,13 @@ using std::endl;
 using std::ifstream;
 using std::ofstream;
 
+
+void find_starting_point(int tid, int* starting_row, int* starting_col)
+{
+    *starting_row = (tid / THREAD_PER_DIM) * (rows / THREAD_PER_DIM);
+    *starting_col = (tid % THREAD_PER_DIM) * (cols / THREAD_PER_DIM);
+}
+
 void allocate_photo(unsigned char***& photo)
 {
     photo = new unsigned char**[rows];
@@ -17,9 +24,9 @@ void allocate_photo(unsigned char***& photo)
     }
 }
 
-int find_ending(int starting)
+int find_ending_point(int starting, int dim)
 {
-    return starting + rows/THREAD_PER_DIM;
+    return starting + dim/THREAD_PER_DIM;
 }
 
 bool fillAndAllocate(char *&buffer, const char *fileName, int &rows, int &cols, int &bufferSize)
@@ -54,8 +61,8 @@ bool fillAndAllocate(char *&buffer, const char *fileName, int &rows, int &cols, 
 
 void getPixlesFromBMP24(int end, int starting_row, int ending_row, int starting_col, int ending_col, char *fileReadBuffer)
 {
-  int count = 1;
-  int extra = cols % 4 + starting_row * cols * 3;
+  int count = 1 + starting_row * cols * 3;
+  int extra = cols % 4;
   for (int i = starting_row; i < ending_row; i++)
   {
     count += extra + (cols - ending_col)*3;
@@ -84,8 +91,8 @@ void getPixlesFromBMP24(int end, int starting_row, int ending_row, int starting_
 
 void write_to_buffer(int end, int starting_row, int ending_row, int starting_col, int ending_col, char *fileWriteBuffer)
 {
-  int count = 1;
-  int extra = cols % 4 + starting_row * cols * 3;
+  int count = 1 + starting_row * cols * 3;
+  int extra = cols % 4;
   for (int i = starting_row; i < ending_row; i++)
   {
     count += extra + (cols - ending_col)*3;
@@ -111,9 +118,27 @@ void write_to_buffer(int end, int starting_row, int ending_row, int starting_col
   }
 }
 
+void* write(void* tid){
+    int id = *((int*) tid);
+    int starting_row, starting_col;
+    find_starting_point(id, &starting_row, &starting_col);
+    write_to_buffer(buffer_size, starting_row, find_ending_point(starting_row, rows), starting_col, find_ending_point(starting_col, cols), file_buffer);
+    pthread_exit(NULL);
+}
+
 void write_handler(char* fileBuffer)
 {
-    write_to_buffer(buffer_size, 0, rows, 0, cols, fileBuffer);
+    pthread_t tids[TOTAL_THREADS];
+    int ids[TOTAL_THREADS];
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        ids[i] = i;
+        int return_code = pthread_create(&tids[i], NULL, write, (void*)&ids[i]);
+    }
+
+    void* status;
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        int ret = pthread_join(tids[i], &status);
+    }
 }
 
 
@@ -206,44 +231,142 @@ void add_cross_filter(int starting_row, int ending_row, int starting_col, int en
     }
 }
 
+void* smoothing_filter(void* tid)
+{
+    int id = *((int*) tid);
+    int starting_row, starting_col;
+    find_starting_point(id, &starting_row, &starting_col);
+    add_smoothing_filter(starting_row, find_ending_point(starting_row, rows), starting_col, find_ending_point(starting_col, cols));
+    pthread_exit(NULL);
+}
+
 void smoothing_filter_handler(){
-    add_smoothing_filter(0, rows, 0, cols);
+    pthread_t tids[TOTAL_THREADS];
+    int ids[TOTAL_THREADS];
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        ids[i] = i;
+        int return_code = pthread_create(&tids[i], NULL, smoothing_filter, (void*)&ids[i]);
+    }
+
+    void* status;
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        int ret = pthread_join(tids[i], &status);
+    }
 }
 
-void sepia_filter_handler(float* color_sums){
-    add_sepia_filter(0, rows, 0, cols, color_sums);
+void* sepia_filter(void* tid)
+{
+    int id = *((int*) tid);
+    int starting_row, starting_col;
+    find_starting_point(id, &starting_row, &starting_col);
+    add_sepia_filter(starting_row, find_ending_point(starting_row, rows), starting_col, find_ending_point(starting_col, cols), color_sums[id]);
+    pthread_exit(NULL);
 }
 
-void mean_filter_handler(float* color_sums){
-    add_mean_filter(0, rows, 0, cols, color_sums);
+void sepia_filter_handler(){
+    pthread_t tids[TOTAL_THREADS];
+    int ids[TOTAL_THREADS];
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        ids[i] = i;
+        int return_code = pthread_create(&tids[i], NULL, sepia_filter, (void*)&ids[i]);
+    }
+
+    void* status;
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        int ret = pthread_join(tids[i], &status);
+    }
+}
+
+void* mean_filter(void* tid){
+    int id = *((int*) tid);
+    int starting_row, starting_col;
+    find_starting_point(id, &starting_row, &starting_col);
+    add_mean_filter(starting_row, find_ending_point(starting_row, rows), starting_col, find_ending_point(starting_col, cols), final_sums);
+    pthread_exit(NULL);
+}
+
+void update_sums(){
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        for(int color = 0; color < 3; color++){
+            final_sums[color] += color_sums[i][color];
+        }
+    }
+}
+
+void mean_filter_handler(){
+    update_sums();
+
+    pthread_t tids[TOTAL_THREADS];
+    int ids[TOTAL_THREADS];
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        ids[i] = i;
+        int return_code = pthread_create(&tids[i], NULL, mean_filter, (void*)&ids[i]);
+    }
+
+    void* status;
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        int ret = pthread_join(tids[i], &status);
+    }
+}
+
+void* cross_filter(void* tid){
+    int id = *((int*) tid);
+    int starting_row, starting_col;
+    find_starting_point(id, &starting_row, &starting_col);
+
+    if(id == 2){
+        id = 3;
+    }
+
+    else if (id == 3){
+        id = 2;
+    }
+
+    bool draw_first_cross = (id % THREAD_PER_DIM == 0);
+    add_cross_filter(starting_row, find_ending_point(starting_row, rows), starting_col, find_ending_point(starting_col, cols), draw_first_cross, !draw_first_cross);
+    pthread_exit(NULL);
 }
 
 void cross_filter_handler(){
-    add_cross_filter(0, rows, 0, cols, true, true);
+    pthread_t tids[TOTAL_THREADS];
+    int ids[TOTAL_THREADS];
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        ids[i] = i;
+        int return_code = pthread_create(&tids[i], NULL, cross_filter, (void*)&ids[i]);
+    }
+
+    void* status;
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        int ret = pthread_join(tids[i], &status);
+    }
 }
 
 void filters_handler(){
-    float color_sums[3] = {0, 0, 0};
     smoothing_filter_handler();
-    sepia_filter_handler(color_sums);
-    mean_filter_handler(color_sums);
+    sepia_filter_handler();
+    mean_filter_handler();
     cross_filter_handler();
 }
 
 void* get_pixels(void* tid)
 {
-    long id = (long) tid;
-    
+    int id = *((int*) tid);
+    int starting_row = 0, starting_col = 0;
+    find_starting_point(id, &starting_row, &starting_col);
+    getPixlesFromBMP24(buffer_size, starting_row, find_ending_point(starting_row, rows), starting_col, find_ending_point(starting_col, cols), file_buffer);
+    pthread_exit(NULL);
 }
 
 void get_pixels_handler(int end, char *fileReadBuffer)
 {
-    int total_threads = THREAD_PER_DIM*THREAD_PER_DIM;
-    pthread_t tids[total_threads];
-
-    for(int i = 0; i < total_threads; i++){
-        long id = i;
-        int return_code = pthread_create(&tids[i], NULL, get_pixels, (void*)id);
+    pthread_t tids[TOTAL_THREADS];
+    int ids[TOTAL_THREADS];
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        ids[i] = i;
+        int return_code = pthread_create(&tids[i], NULL, get_pixels, (void *)&ids[i]);
     }
 
+    for(int i = 0; i < TOTAL_THREADS; i++){
+        int ret = pthread_join(tids[i], NULL);
+    }
 }

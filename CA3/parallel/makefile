@@ -1,6 +1,6 @@
 CC = g++
 BUILD_DIR = build
-CFLAGS = -std=c++11
+CFLAGS = -std=c++11 -pthread
 
 MAIN_EXECUTABLE_FILE = ImageFilters.out
 

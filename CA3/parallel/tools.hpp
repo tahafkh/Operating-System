@@ -50,9 +50,11 @@ const int RED = 0;
 const int GREEN = 1;
 const int BLUE = 2;
 
-
 const int THREAD_PER_DIM = 2;
+const int TOTAL_THREADS = THREAD_PER_DIM*THREAD_PER_DIM;
 
+extern float color_sums[TOTAL_THREADS][3];
+extern float final_sums[3];
 
 bool fillAndAllocate(char *&buffer, const char *fileName, int &rows, int &cols, int &bufferSize);
 void getPixlesFromBMP24(int end, int starting_row, int ending_row, int starting_col, int ending_col, char *fileReadBuffer);

@@ -1,4 +1,5 @@
 #include "tools.hpp"
+#include <chrono>
 
 int rows;
 int cols;
@@ -13,12 +14,13 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 using std::ofstream;
+using namespace std::chrono;
 
 int main(int argc, char *argv[])
 {
   char *file_name = argv[1];
   const char* OUTPUT_PHOTO_NAME = "output.bmp";
-  
+  auto start = high_resolution_clock::now();
   if (!fillAndAllocate(file_buffer, file_name, rows, cols, buffer_size))
   {
     cout << "Error reading file" << endl;
@@ -33,5 +35,10 @@ int main(int argc, char *argv[])
   filters_handler();
 
   writeOutBmp24(file_buffer, OUTPUT_PHOTO_NAME, buffer_size);
+  auto stop = high_resolution_clock::now();
+
+  auto duration = duration_cast<milliseconds>(stop - start);
+
+  cout << "Duration: " << duration.count() << "ms" << endl;
   return 0;
 }
